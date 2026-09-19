@@ -43,12 +43,13 @@ class QAPipeline:
             # If the document has no chunks yet, we can't answer.
             raise_api_error(400, "document_not_processed", "Document has no extracted chunks. Process it first.")
 
-        # 1. Retrieve relevant chunks
-        relevant_chunks = self.retrieval_service.retrieve_chunks(request.question, document.chunks, top_k=15)
+        # 1. Provide the entire document context to the LLM instead of filtering
+        # This ensures all pages are analyzed for every question
+        relevant_chunks = document.chunks
         
         if not relevant_chunks:
             return QuestionResponse(
-                answer="I cannot find any relevant information in the document for your question.",
+                answer="I cannot find any text in this document.",
                 confidence="low",
                 insufficient_information=True,
                 citations=[],
