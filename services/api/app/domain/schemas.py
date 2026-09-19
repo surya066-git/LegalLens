@@ -123,11 +123,11 @@ class Citation(ApiModel):
 
 
 class QuestionResponse(ApiModel):
-    status: str | None = None
-    answer: str | None = None
-    confidence: Literal["low", "medium", "high"] | None = None
-    insufficient_information: bool | None = None
-    citations: list[Citation] | None = None
-    ambiguities: list[str] | None = None
-    lawyer_questions: list[str] | None = None
-    disclaimer: str | None = None
+    status: str = "ANSWERED"
+    answer: str
+    confidence: Literal["low", "medium", "high"]
+    insufficient_information: bool
+    citations: list[Citation]
+    ambiguities: list[str]
+    lawyer_questions: list[str]
+    disclaimer: str
