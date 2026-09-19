@@ -52,13 +52,14 @@ export async function processDocument(documentId: string): Promise<ProcessDocume
 export async function askQuestion(
   documentId: string,
   question: string,
+  modelSelection: string = "gemini_auto"
 ): Promise<QuestionResponse> {
   const response = await fetch(`/api/documents/${documentId}/questions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ question }),
+    body: JSON.stringify({ question, model_selection: modelSelection }),
   });
 
   return readJson<QuestionResponse>(response);

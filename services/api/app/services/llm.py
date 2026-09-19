@@ -54,7 +54,75 @@ class LLMService:
         LLMService._current_key_index = (LLMService._current_key_index + 1) % len(self.clients)
         print(f"DEBUG: Rotated API key to index {LLMService._current_key_index}")
 
-    def generate_answer(self, question: str, retrieved_chunks: list[StoredChunk]) -> QuestionResponse:
+    def _generate_with_groq(self, question: str, retrieved_chunks: list[StoredChunk]) -> QuestionResponse:
+        import requests
+        
+        evidence_text = "\n\n".join(
+            [f"--- Chunk {c.chunk_id} (Page {c.page_start}, Clause {c.clause_number}) ---\n{c.source_text}" for c in retrieved_chunks]
+        )
+        
+        prompt = f"""User Question: {question}
+
+<document_evidence>
+{evidence_text}
+</document_evidence>
+
+Respond ONLY with valid JSON matching exactly this schema:
+{{
+  "status": "ANSWERED",
+  "answer": "string",
+  "confidence": "low" | "medium" | "high",
+  "insufficient_information": boolean,
+  "citations": [
+    {{
+      "page": number or null,
+      "clause_number": "string" or null,
+      "source_text": "string",
+      "chunk_id": "string" or null
+    }}
+  ],
+  "ambiguities": ["string"],
+  "lawyer_questions": ["string"],
+  "disclaimer": "This is legal information, not legal advice. Consult a qualified lawyer."
+}}"""
+        settings = get_settings()
+        if not settings.groq_api_key:
+            raise_api_error(500, "llm_error", "Groq API key is not configured.")
+            
+        headers = {
+            "Authorization": f"Bearer {settings.groq_api_key.get_secret_value()}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "model": "llama3-8b-8192",
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": prompt}
+            ],
+            "response_format": {"type": "json_object"},
+            "temperature": 0.0
+        }
+        
+        try:
+            resp = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload)
+            resp.raise_for_status()
+            data = resp.json()
+            content = data["choices"][0]["message"]["content"]
+            return QuestionResponse.model_validate_json(content)
+        except Exception as e:
+            raise_api_error(500, "llm_error", f"Groq generation failed: {str(e)}")
+
+    def generate_answer(self, question: str, retrieved_chunks: list[StoredChunk], model_selection: str | None = "gemini_auto") -> QuestionResponse:
+        if model_selection == "grok":
+            return self._generate_with_groq(question, retrieved_chunks)
+            
+        # Optional: override specific gemini keys if requested
+        if model_selection == "gemini_1" and len(self.clients) > 0:
+            LLMService._current_key_index = 0
+        elif model_selection == "gemini_2" and len(self.clients) > 1:
+            LLMService._current_key_index = 1
+            
         evidence_text = "\n\n".join(
             [f"--- Chunk {c.chunk_id} (Page {c.page_start}, Clause {c.clause_number}) ---\n{c.source_text}" for c in retrieved_chunks]
         )
@@ -68,7 +136,6 @@ class LLMService:
 
         import time
         base_delay = 2
-        # Ensure we try all keys at least once, with some room for 503 retries
         total_attempts = len(self.clients) + 2
 
         for attempt in range(total_attempts):

@@ -31,6 +31,11 @@ class Settings(BaseSettings):
         alias="GEMINI_API_KEYS",
         repr=False,
     )
+    groq_api_key: SecretStr | None = Field(
+        default=None,
+        alias="GROQ_API_KEY",
+        repr=False,
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env",

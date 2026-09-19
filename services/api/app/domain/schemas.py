@@ -113,6 +113,7 @@ class ChunksResponse(ApiModel):
 
 class QuestionRequest(ApiModel):
     question: str = Field(min_length=1, examples=["Can my employer stop me from joining a competitor?"])
+    model_selection: str | None = Field(default="gemini_1")
 
 
 class Citation(ApiModel):

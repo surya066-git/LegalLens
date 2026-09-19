@@ -8,7 +8,7 @@ import { Spinner } from "../ui/Spinner";
 import { AnswerCard } from "./AnswerCard";
 
 interface QuestionPanelProps {
-  onAsk: (question: string) => Promise<void>;
+  onAsk: (question: string, modelSelection: string) => Promise<void>;
   isLoading: boolean;
   answer: QuestionResponse | null;
   currentQuestion: string | null;
@@ -59,20 +59,21 @@ export const QuestionPanel = memo(function QuestionPanel({
   disabled,
 }: QuestionPanelProps) {
   const [inputValue, setInputValue] = useState("");
+  const [modelSelection, setModelSelection] = useState("gemini_auto");
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (inputValue.trim() && !isLoading && !disabled) {
-      onAsk(inputValue.trim());
+      onAsk(inputValue.trim(), modelSelection);
       setInputValue("");
     }
-  }, [disabled, inputValue, isLoading, onAsk]);
+  }, [disabled, inputValue, isLoading, onAsk, modelSelection]);
 
   const handleSuggestClick = useCallback((question: string) => {
     if (!isLoading && !disabled) {
-      onAsk(question);
+      onAsk(question, modelSelection);
     }
-  }, [disabled, isLoading, onAsk]);
+  }, [disabled, isLoading, onAsk, modelSelection]);
 
   const showSuggestions = !answer && !isLoading && !currentQuestion;
 
@@ -112,31 +113,47 @@ export const QuestionPanel = memo(function QuestionPanel({
       </div>
 
       <div className="shrink-0 border-t border-surface-200 bg-white p-4">
-        <div className="relative mx-auto max-w-3xl">
-          <input
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                handleSubmit(e as unknown as React.FormEvent);
-              }
-            }}
-            disabled={disabled || isLoading}
-            placeholder={disabled ? "Upload a document to start asking questions..." : "Ask a question about the document..."}
-            className="w-full rounded-2xl border border-surface-200 bg-surface-50 py-3.5 pl-5 pr-14 text-sm text-surface-900 placeholder:text-surface-400 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-brand-500/10 transition-all disabled:opacity-60"
-          />
-          <div className="absolute right-2 top-2">
-            <Button
-              type="button"
-              onClick={handleSubmit}
-              size="icon"
-              disabled={!inputValue.trim() || disabled || isLoading}
-              className="h-10 w-10 rounded-xl bg-brand-600 text-white shadow-sm hover:bg-brand-700 disabled:bg-surface-200 disabled:text-surface-400"
+        <div className="relative mx-auto max-w-3xl flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-surface-500">AI Provider</span>
+            <select
+              value={modelSelection}
+              onChange={(e) => setModelSelection(e.target.value)}
+              disabled={disabled || isLoading}
+              className="text-xs rounded-lg border border-surface-200 bg-surface-50 py-1.5 px-3 text-surface-700 outline-none focus:border-brand-500 disabled:opacity-60"
             >
-              <Send size={18} className={isLoading ? "animate-pulse" : ""} />
-            </Button>
+              <option value="gemini_auto">Gemini (Auto Rotate)</option>
+              <option value="gemini_1">Gemini (Account 1)</option>
+              <option value="gemini_2">Gemini (Account 2)</option>
+              <option value="grok">Grok / Groq (Llama 3)</option>
+            </select>
+          </div>
+          <div className="relative">
+            <input
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleSubmit(e as unknown as React.FormEvent);
+                }
+              }}
+              disabled={disabled || isLoading}
+              placeholder={disabled ? "Upload a document to start asking questions..." : "Ask a question about the document..."}
+              className="w-full rounded-2xl border border-surface-200 bg-surface-50 py-3.5 pl-5 pr-14 text-sm text-surface-900 placeholder:text-surface-400 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-brand-500/10 transition-all disabled:opacity-60"
+            />
+            <div className="absolute right-2 top-2">
+              <Button
+                type="button"
+                onClick={handleSubmit}
+                size="icon"
+                disabled={!inputValue.trim() || disabled || isLoading}
+                className="h-10 w-10 rounded-xl bg-brand-600 text-white shadow-sm hover:bg-brand-700 disabled:bg-surface-200 disabled:text-surface-400"
+              >
+                <Send size={18} className={isLoading ? "animate-pulse" : ""} />
+              </Button>
+            </div>
           </div>
         </div>
         <p className="mt-3 text-center text-[11px] text-surface-400 font-medium tracking-wide">

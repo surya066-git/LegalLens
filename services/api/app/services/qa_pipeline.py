@@ -67,7 +67,7 @@ class QAPipeline:
             )
 
         # 2. Generate answer using LLM
-        response = self.llm_service.generate_answer(request.question, relevant_chunks)
+        response = self.llm_service.generate_answer(request.question, relevant_chunks, request.model_selection)
         response.status = "LLM_SUCCESS"
         
         # 3. Validate citations

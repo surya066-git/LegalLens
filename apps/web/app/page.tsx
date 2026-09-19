@@ -111,7 +111,7 @@ export default function Home() {
     setActivePage(1);
   }, []);
 
-  const handleAsk = useCallback(async (question: string) => {
+  const handleAsk = useCallback(async (question: string, modelSelection: string = "gemini_auto") => {
     if (!documentId) {
       setToastMessage({
         title: "No document selected",
@@ -125,7 +125,7 @@ export default function Home() {
     setCurrentQuestion(question);
     
     try {
-      const response = await askQuestion(documentId, question);
+      const response = await askQuestion(documentId, question, modelSelection);
       setAnswer(response);
       setError(null);
     } catch (requestError) {
