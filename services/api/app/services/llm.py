@@ -95,7 +95,7 @@ Respond ONLY with valid JSON matching exactly this schema:
         }
         
         payload = {
-            "model": "llama3-8b-8192",
+            "model": "openai/gpt-oss-120b",
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": prompt}
@@ -106,7 +106,8 @@ Respond ONLY with valid JSON matching exactly this schema:
         
         try:
             resp = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload)
-            resp.raise_for_status()
+            if not resp.ok:
+                raise Exception(f"Groq API Error {resp.status_code}: {resp.text}")
             data = resp.json()
             content = data["choices"][0]["message"]["content"]
             return QuestionResponse.model_validate_json(content)
