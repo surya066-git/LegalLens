@@ -82,24 +82,13 @@ class LLMService:
                 return QuestionResponse.model_validate_json(response.text)
             except Exception as e:
                 error_str = str(e).lower()
-                if "503" in error_str or "unavailable" in error_str or "429" in error_str or "resource_exhausted" in error_str or "quota" in error_str:
+                print(f"DEBUG LLM EXCEPTION: {repr(e)}")
+                if "503" in error_str or "unavailable" in error_str or "429" in error_str or "resource_exhausted" in error_str or "quota" in error_str or "not found" in error_str or "404" in error_str:
                     if attempt < max_retries - 1 and not ("429" in error_str or "quota" in error_str):
                         time.sleep(base_delay * (2 ** attempt))
                         continue
                     else:
-                        # Fallback to a mock response so the UI can still be tested
-                        return QuestionResponse(
-                            answer="[MOCK RESPONSE - Google API is currently overloaded] Based on the document, the employee's base salary is $120,000 per year, payable in semi-monthly installments. The notice period for termination is 30 days.",
-                            confidence="high",
-                            insufficient_information=False,
-                            citations=[
-                                {"page": 1, "clause_number": "3.1", "source_text": "The Employee's base salary shall be $120,000 per annum", "chunk_id": "chunk_mock_1"}, 
-                                {"page": 2, "clause_number": "5.2", "source_text": "Either party may terminate this Agreement by providing 30 days written notice", "chunk_id": "chunk_mock_2"}
-                            ],
-                            ambiguities=[],
-                            lawyer_questions=[],
-                            disclaimer="This is legal information, not legal advice. Consult a qualified lawyer."
-                        )
+                        raise_api_error(429, "llm_quota_exceeded", "Gemini API rate limit or quota exceeded. Please try again later or upgrade your plan.")
                 if "validation" in error_str or "json" in error_str:
                     raise_api_error(500, "llm_parsing_error", f"Failed to parse LLM response: {str(e)}")
                 raise_api_error(500, "llm_error", f"LLM generation failed: {str(e)}")

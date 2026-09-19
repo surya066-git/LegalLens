@@ -1,8 +1,16 @@
+import re
 from typing import List
 
 from app.domain.schemas import QuestionResponse
 from app.domain.document_models import StoredChunk
 
+
+def normalize_for_citation(text: str) -> str:
+    if not text:
+        return ""
+    # Remove punctuation, newlines, and extra whitespace for robust matching
+    text = re.sub(r'[\W_]+', ' ', text)
+    return text.lower().strip()
 
 class CitationValidationService:
     def validate_citations(self, response: QuestionResponse, chunks: List[StoredChunk]) -> QuestionResponse:
@@ -12,19 +20,32 @@ class CitationValidationService:
         valid_citations = []
         for citation in response.citations:
             is_valid = False
+            norm_citation = normalize_for_citation(citation.source_text)
+            
+            print(f"DEBUG CITATION: {norm_citation}")
+            
+            if not norm_citation:
+                continue
+                
             for chunk in chunks:
-                if citation.source_text and citation.source_text.strip() in chunk.source_text:
+                norm_chunk = normalize_for_citation(chunk.source_text)
+                if norm_citation in norm_chunk:
+                    print(f"DEBUG MATCHED CHUNK: {norm_chunk}")
                     citation.chunk_id = chunk.chunk_id
                     citation.page = chunk.page_start
                     citation.clause_number = chunk.clause_number
                     is_valid = True
                     break
             
+            if not is_valid:
+                print(f"DEBUG FAILED TO MATCH CITATION: {norm_citation}")
+            
             if is_valid:
                 valid_citations.append(citation)
 
         # If citations were provided but none were valid, reject the answer
         if response.citations and not valid_citations:
+            response.status = "CITATION_VALIDATION_FAILED"
             response.insufficient_information = True
             response.confidence = "low"
             response.citations = []

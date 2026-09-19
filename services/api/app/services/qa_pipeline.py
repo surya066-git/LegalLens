@@ -13,8 +13,6 @@ class QAPipeline:
         self.citation_validator = CitationValidationService()
 
     def _check_prompt_injection(self, question: str):
-        # Basic prompt injection checks as a secondary defense layer
-        # The primary defense is evidence isolation in LLMService.
         question_lower = question.lower()
         forbidden_phrases = [
             "ignore previous instructions",
@@ -36,20 +34,30 @@ class QAPipeline:
     def ask_question(self, document_id: str, request: QuestionRequest) -> QuestionResponse:
         self._check_prompt_injection(request.question)
         
-        # Load document metadata to ensure it exists and to get its chunks
-        document = self.document_store.load_metadata(document_id)
+        try:
+            document = self.document_store.load_metadata(document_id)
+        except Exception:
+            raise_api_error(404, "DOCUMENT_NOT_FOUND", "Document not found")
         
         if not document.chunks:
-            # If the document has no chunks yet, we can't answer.
-            raise_api_error(400, "document_not_processed", "Document has no extracted chunks. Process it first.")
+            return QuestionResponse(
+                status="NO_CHUNKS",
+                answer="Document has no extracted chunks. Process it first.",
+                confidence="low",
+                insufficient_information=True,
+                citations=[],
+                ambiguities=[],
+                lawyer_questions=[],
+                disclaimer="This is legal information, not legal advice. Consult a qualified lawyer."
+            )
 
-        # 1. Provide the entire document context to the LLM instead of filtering
-        # This ensures all pages are analyzed for every question
-        relevant_chunks = document.chunks
+        # 1. Retrieve relevant chunks
+        relevant_chunks = self.retrieval_service.retrieve_chunks(request.question, document.chunks, top_k=15)
         
         if not relevant_chunks:
             return QuestionResponse(
-                answer="I cannot find any text in this document.",
+                status="RETRIEVAL_EMPTY",
+                answer="No supporting evidence was retrieved from the uploaded document.",
                 confidence="low",
                 insufficient_information=True,
                 citations=[],
@@ -60,8 +68,12 @@ class QAPipeline:
 
         # 2. Generate answer using LLM
         response = self.llm_service.generate_answer(request.question, relevant_chunks)
+        response.status = "LLM_SUCCESS"
         
         # 3. Validate citations
         response = self.citation_validator.validate_citations(response, document.chunks)
         
+        if response.status != "CITATION_VALIDATION_FAILED":
+            response.status = "ANSWERED"
+            
         return response
