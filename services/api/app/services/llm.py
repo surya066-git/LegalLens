@@ -39,11 +39,20 @@ Output your response as JSON matching the requested schema. Include:
 """
 
 class LLMService:
+    _current_key_index = 0
+
     def __init__(self):
         settings = get_settings()
-        if not settings.gemini_api_key:
-            raise ValueError("GEMINI_API_KEY is not set.")
-        self.client = genai.Client(api_key=settings.gemini_api_key.get_secret_value())
+        if not settings.gemini_api_keys:
+            raise ValueError("GEMINI_API_KEYS is not set.")
+        self.clients = [genai.Client(api_key=key.get_secret_value()) for key in settings.gemini_api_keys]
+
+    def _get_current_client(self):
+        return self.clients[LLMService._current_key_index]
+        
+    def _rotate_key(self):
+        LLMService._current_key_index = (LLMService._current_key_index + 1) % len(self.clients)
+        print(f"DEBUG: Rotated API key to index {LLMService._current_key_index}")
 
     def generate_answer(self, question: str, retrieved_chunks: list[StoredChunk]) -> QuestionResponse:
         evidence_text = "\n\n".join(
@@ -58,12 +67,14 @@ class LLMService:
 """
 
         import time
-        max_retries = 3
         base_delay = 2
+        # Ensure we try all keys at least once, with some room for 503 retries
+        total_attempts = len(self.clients) + 2
 
-        for attempt in range(max_retries):
+        for attempt in range(total_attempts):
+            client = self._get_current_client()
             try:
-                response = self.client.models.generate_content(
+                response = client.models.generate_content(
                     model='gemini-3.6-flash',
                     contents=[
                         types.Content(role="user", parts=[types.Part.from_text(text=SYSTEM_PROMPT)]),
@@ -82,13 +93,23 @@ class LLMService:
                 return QuestionResponse.model_validate_json(response.text)
             except Exception as e:
                 error_str = str(e).lower()
-                print(f"DEBUG LLM EXCEPTION: {repr(e)}")
-                if "503" in error_str or "unavailable" in error_str or "429" in error_str or "resource_exhausted" in error_str or "quota" in error_str or "not found" in error_str or "404" in error_str:
-                    if attempt < max_retries - 1 and not ("429" in error_str or "quota" in error_str):
-                        time.sleep(base_delay * (2 ** attempt))
+                print(f"DEBUG LLM EXCEPTION with key index {LLMService._current_key_index}: {repr(e)}")
+                
+                is_quota = "429" in error_str or "quota" in error_str or "resource_exhausted" in error_str
+                is_not_found = "not found" in error_str or "404" in error_str
+                
+                if "503" in error_str or "unavailable" in error_str or is_quota or is_not_found:
+                    if is_quota or is_not_found:
+                        print("Quota or Not Found error detected, rotating API key.")
+                        self._rotate_key()
                         continue
-                    else:
-                        raise_api_error(429, "llm_quota_exceeded", "Gemini API rate limit or quota exceeded. Please try again later or upgrade your plan.")
+                        
+                    if attempt < total_attempts - 1:
+                        time.sleep(base_delay * (1.5 ** attempt))
+                        continue
+                        
                 if "validation" in error_str or "json" in error_str:
                     raise_api_error(500, "llm_parsing_error", f"Failed to parse LLM response: {str(e)}")
                 raise_api_error(500, "llm_error", f"LLM generation failed: {str(e)}")
+                
+        raise_api_error(429, "llm_quota_exceeded", "All Gemini API keys exhausted their rate limits or quota. Please try again later.")

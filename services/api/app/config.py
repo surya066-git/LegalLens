@@ -26,9 +26,9 @@ class Settings(BaseSettings):
         default=20,
         alias="MIN_EXTRACTABLE_TEXT_CHARS",
     )
-    gemini_api_key: SecretStr | None = Field(
+    gemini_api_keys: list[SecretStr] | None = Field(
         default=None,
-        alias="GEMINI_API_KEY",
+        alias="GEMINI_API_KEYS",
         repr=False,
     )
 
@@ -38,6 +38,18 @@ class Settings(BaseSettings):
         extra="ignore",
         populate_by_name=True,
     )
+
+    @field_validator("gemini_api_keys", mode="before")
+    @classmethod
+    def parse_gemini_api_keys(cls, value: str | list[str]) -> list[SecretStr]:
+        if not value:
+            return []
+        if isinstance(value, str):
+            # Split by comma and clean whitespace
+            return [SecretStr(key.strip()) for key in value.split(",") if key.strip()]
+        if isinstance(value, list):
+            return [SecretStr(key) if isinstance(key, str) else key for key in value]
+        return value
 
     @field_validator("cors_origins", mode="before")
     @classmethod
