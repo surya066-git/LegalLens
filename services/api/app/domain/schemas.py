@@ -125,9 +125,10 @@ class Citation(ApiModel):
 
 class QuestionResponse(ApiModel):
     status: str = "ANSWERED"
+    answer_type: Literal["DIRECTLY_ANSWERED", "PARTIALLY_ANSWERED", "NOT_FOUND"] = Field(default="NOT_FOUND")
     answer: str
     confidence: Literal["low", "medium", "high"]
-    insufficient_information: bool
+    missing_information: list[str] = Field(default_factory=list)
     citations: list[Citation]
     ambiguities: list[str]
     lawyer_questions: list[str]

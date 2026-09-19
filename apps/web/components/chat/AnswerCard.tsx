@@ -14,7 +14,7 @@ interface AnswerCardProps {
 }
 
 export function AnswerCard({ question, answer, onCitationClick }: AnswerCardProps) {
-  if (answer.insufficientInformation) {
+  if (answer.answerType === "NOT_FOUND") {
     return (
       <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
         <div className="border-b border-surface-200 pb-4">
@@ -36,13 +36,31 @@ export function AnswerCard({ question, answer, onCitationClick }: AnswerCardProp
         <div className="flex items-center gap-2 text-sm font-semibold text-brand-600 uppercase tracking-wider">
           <Sparkles size={16} />
           <span>AI Explanation</span>
+          {answer.answerType === "PARTIALLY_ANSWERED" && (
+            <span className="ml-2 rounded-full bg-warning-100 px-2 py-0.5 text-xs text-warning-700 font-medium">
+              Partial Information
+            </span>
+          )}
         </div>
         <div className="text-surface-800 leading-relaxed text-base">
           {answer.answer}
         </div>
       </div>
 
-      {answer.citations.length > 0 && (
+      {answer.missingInformation && answer.missingInformation.length > 0 && (
+        <div className="space-y-3 pt-2">
+          <div className="text-sm font-semibold text-warning-600 uppercase tracking-wider">
+            Missing from Document
+          </div>
+          <ul className="list-disc pl-5 text-sm text-surface-600 space-y-1">
+            {answer.missingInformation.map((info, idx) => (
+              <li key={idx}>{info}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {answer.citations && answer.citations.length > 0 && (
         <div className="space-y-4 pt-4">
           <div className="text-sm font-semibold text-surface-500 uppercase tracking-wider">
             Evidence
@@ -59,7 +77,7 @@ export function AnswerCard({ question, answer, onCitationClick }: AnswerCardProp
         </div>
       )}
 
-      {answer.ambiguities.length > 0 && (
+      {answer.ambiguities && answer.ambiguities.length > 0 && (
         <AmbiguityState 
           ambiguities={answer.ambiguities} 
           lawyerQuestions={answer.lawyerQuestions} 

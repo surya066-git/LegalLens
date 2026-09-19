@@ -46,7 +46,7 @@ class CitationValidationService:
         # If citations were provided but none were valid, reject the answer
         if response.citations and not valid_citations:
             response.status = "CITATION_VALIDATION_FAILED"
-            response.insufficient_information = True
+            response.answer_type = "NOT_FOUND"
             response.confidence = "low"
             response.citations = []
             response.answer = "I cannot find sufficient evidence in the document to answer this question accurately."

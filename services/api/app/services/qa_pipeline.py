@@ -42,9 +42,10 @@ class QAPipeline:
         if not document.chunks:
             return QuestionResponse(
                 status="NO_CHUNKS",
+                answer_type="NOT_FOUND",
                 answer="Document has no extracted chunks. Process it first.",
                 confidence="low",
-                insufficient_information=True,
+                missing_information=[],
                 citations=[],
                 ambiguities=[],
                 lawyer_questions=[],
@@ -57,9 +58,10 @@ class QAPipeline:
         if not relevant_chunks:
             return QuestionResponse(
                 status="RETRIEVAL_EMPTY",
+                answer_type="NOT_FOUND",
                 answer="No supporting evidence was retrieved from the uploaded document.",
                 confidence="low",
-                insufficient_information=True,
+                missing_information=[],
                 citations=[],
                 ambiguities=[],
                 lawyer_questions=[],

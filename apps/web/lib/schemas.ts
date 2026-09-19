@@ -32,9 +32,10 @@ export type Citation = {
 };
 
 export type QuestionResponse = {
+  answerType: "DIRECTLY_ANSWERED" | "PARTIALLY_ANSWERED" | "NOT_FOUND";
   answer: string;
   confidence: "low" | "medium" | "high";
-  insufficientInformation: boolean;
+  missingInformation: string[];
   citations: Citation[];
   ambiguities: string[];
   lawyerQuestions: string[];
