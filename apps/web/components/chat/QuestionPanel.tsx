@@ -117,6 +117,7 @@ export const QuestionPanel = memo(function QuestionPanel({
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-surface-500">AI Provider</span>
             <select
+              aria-label="Select AI Provider"
               value={modelSelection}
               onChange={(e) => setModelSelection(e.target.value)}
               disabled={disabled || isLoading}
@@ -130,6 +131,7 @@ export const QuestionPanel = memo(function QuestionPanel({
           </div>
           <div className="relative">
             <input
+              aria-label="Ask a question about the document"
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
@@ -145,6 +147,7 @@ export const QuestionPanel = memo(function QuestionPanel({
             />
             <div className="absolute right-2 top-2">
               <Button
+                aria-label="Send question"
                 type="button"
                 onClick={handleSubmit}
                 size="icon"

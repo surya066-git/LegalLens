@@ -48,6 +48,8 @@ export function UploadZone({ onUpload, isUploading, error }: UploadZoneProps) {
   return (
     <div className="mx-auto max-w-2xl w-full">
       <div 
+        role="region"
+        aria-label="Upload document dropzone"
         className={cn(
           "relative mt-8 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-12 transition-all duration-200",
           isDragging 
@@ -60,6 +62,7 @@ export function UploadZone({ onUpload, isUploading, error }: UploadZoneProps) {
         onDrop={handleDrop}
       >
         <input
+          aria-label="File upload input"
           type="file"
           ref={fileInputRef}
           onChange={handleFileSelect}
@@ -98,7 +101,7 @@ export function UploadZone({ onUpload, isUploading, error }: UploadZoneProps) {
       </div>
 
       {error && (
-        <div className="mt-4 flex items-center gap-2 rounded-lg bg-error-50 p-4 text-sm text-error-700 border border-error-200">
+        <div role="alert" className="mt-4 flex items-center gap-2 rounded-lg bg-error-50 p-4 text-sm text-error-700 border border-error-200">
           <AlertCircle size={16} className="shrink-0" />
           <p>{error}</p>
         </div>

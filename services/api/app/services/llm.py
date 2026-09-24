@@ -110,7 +110,7 @@ Respond ONLY with valid JSON matching exactly this schema:
         }
         
         try:
-            resp = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload)
+            resp = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload, timeout=20.0)
             if not resp.ok:
                 raise Exception(f"Groq API Error {resp.status_code}: {resp.text}")
             data = resp.json()
@@ -183,6 +183,15 @@ Respond ONLY with valid JSON matching exactly this schema:
                         
                 if "validation" in error_str or "json" in error_str:
                     raise_api_error(500, "llm_parsing_error", f"Failed to parse LLM response: {str(e)}")
-                raise_api_error(500, "llm_error", f"LLM generation failed: {str(e)}")
                 
-        raise_api_error(429, "llm_quota_exceeded", "All Gemini API keys exhausted their rate limits or quota. Please try again later.")
+                if attempt == total_attempts - 1:
+                    print(f"Gemini failed after {total_attempts} attempts. Falling back to Groq. Last error: {str(e)}")
+                    try:
+                        return self._generate_with_groq(question, retrieved_chunks)
+                    except Exception as groq_e:
+                        raise_api_error(500, "llm_error", f"Both Gemini and Groq failed. Gemini: {str(e)} | Groq: {str(groq_e)}")
+
+        try:
+            return self._generate_with_groq(question, retrieved_chunks)
+        except Exception as groq_e:
+            raise_api_error(500, "llm_error", f"All Gemini API keys exhausted their rate limits. Groq fallback also failed: {str(groq_e)}")

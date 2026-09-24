@@ -1,4 +1,5 @@
 import pymupdf
+from pathlib import Path
 
 from app.config import Settings
 from app.domain.document_models import StoredDocument, StoredPage
@@ -41,7 +42,7 @@ def process_pdf_document(document_id: str, settings: Settings) -> StoredDocument
         raise
 
 
-def extract_pages(pdf_path, settings: Settings) -> list[StoredPage]:
+def extract_pages(pdf_path: Path, settings: Settings) -> list[StoredPage]:
     try:
         pdf = pymupdf.open(pdf_path)
     except Exception:

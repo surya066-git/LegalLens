@@ -1,0 +1,98 @@
+{
+  "build": {
+    "images": [
+      "$_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA",
+      "$_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:latest"
+    ],
+    "options": {
+      "logging": "CLOUD_LOGGING_ONLY",
+      "requestedVerifyOption": "VERIFIED",
+      "substitutionOption": "ALLOW_LOOSE"
+    },
+    "steps": [
+      {
+        "args": [
+          "-c",
+          "docker pull $_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:latest || exit 0"
+        ],
+        "entrypoint": "/bin/bash",
+        "id": "Pull",
+        "name": "gcr.io/cloud-builders/docker"
+      },
+      {
+        "id": "Build",
+        "name": "gcr.io/k8s-skaffold/pack",
+        "entrypoint": "pack",
+        "args": [
+          "build",
+          "$_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA",
+          "--builder=gcr.io/buildpacks/builder:v1",
+          "--path=services/api"
+        ]
+      },
+      {
+        "args": [
+          "push",
+          "$_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA"
+        ],
+        "id": "Push",
+        "name": "gcr.io/cloud-builders/docker"
+      },
+      {
+        "args": [
+          "run",
+          "services",
+          "update",
+          "$_SERVICE_NAME",
+          "--image=$_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA",
+          "--update-labels=managed-by=gcp-cloud-build-deploy-cloud-run,gcb-trigger-id=$_TRIGGER_ID,gcb-trigger-region=$LOCATION,commit-sha=$COMMIT_SHA,gcb-build-id=$BUILD_ID",
+          "--region=$_DEPLOY_REGION",
+          "--quiet"
+        ],
+        "entrypoint": "gcloud",
+        "id": "Deploy",
+        "name": "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
+      }
+    ],
+    "substitutions": {
+      "REPO_NAME": "surya066-git-legallens",
+      "_AR_HOSTNAME": "asia-south1-docker.pkg.dev",
+      "_AR_PROJECT_ID": "gen-lang-client-0873033478",
+      "_AR_REPOSITORY": "cloud-run-source-deploy",
+      "_DEPLOY_REGION": "asia-south1",
+      "_SERVICE_NAME": "legallens-api",
+      "_TRIGGER_ID": "80194007-5ee7-440e-a971-1f371f99267b"
+    },
+    "tags": [
+      "gcp-cloud-build-deploy-cloud-run",
+      "legallens-api"
+    ]
+  },
+  "createTime": "2026-09-22T07:51:54.343364034Z",
+  "description": "Build and deploy to Cloud Run service legallens-api on push to \"main\"",
+  "developerConnectEventConfig": {
+    "gitRepositoryLink": "projects/gen-lang-client-0873033478/locations/asia-south1/connections/connection-bvlemqe/gitRepositoryLinks/surya066-git-LegalLens",
+    "gitRepositoryLinkType": "GITHUB",
+    "push": {
+      "branch": "main"
+    }
+  },
+  "id": "80194007-5ee7-440e-a971-1f371f99267b",
+  "includeBuildLogs": "INCLUDE_BUILD_LOGS_WITH_STATUS",
+  "name": "cloudrun-legallens-api-asia-south1-surya066-git-LegalLens-mrcr",
+  "resourceName": "projects/gen-lang-client-0873033478/locations/asia-south1/triggers/80194007-5ee7-440e-a971-1f371f99267b",
+  "serviceAccount": "projects/gen-lang-client-0873033478/serviceAccounts/82751508040-compute@developer.gserviceaccount.com",
+  "substitutions": {
+    "REPO_NAME": "surya066-git-legallens",
+    "_AR_HOSTNAME": "asia-south1-docker.pkg.dev",
+    "_AR_PROJECT_ID": "gen-lang-client-0873033478",
+    "_AR_REPOSITORY": "cloud-run-source-deploy",
+    "_DEPLOY_REGION": "asia-south1",
+    "_SERVICE_NAME": "legallens-api",
+    "_TRIGGER_ID": "80194007-5ee7-440e-a971-1f371f99267b"
+  },
+  "tags": [
+    "gcp-cloud-build-deploy-cloud-run",
+    "legallens-api"
+  ]
+}

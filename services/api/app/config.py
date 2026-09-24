@@ -14,6 +14,10 @@ class Settings(BaseSettings):
         default_factory=lambda: ["http://localhost:3000"],
         alias="CORS_ORIGINS",
     )
+    frontend_url: str | None = Field(
+        default=None,
+        alias="FRONTEND_URL",
+    )
     document_storage_dir: Path = Field(
         default=Path(__file__).resolve().parents[1] / "storage" / "documents",
         alias="DOCUMENT_STORAGE_DIR",

@@ -65,6 +65,7 @@ function DocumentPanel({
           {pdfFile && numPages && (
             <div className="flex items-center gap-2 bg-surface-50 p-1 rounded-lg border border-surface-200">
               <Button 
+                aria-label="Previous page"
                 variant="ghost" 
                 size="icon" 
                 onClick={() => onPageChange(Math.max(1, activePage - 1))}
@@ -73,10 +74,11 @@ function DocumentPanel({
               >
                 <ChevronLeft size={16} />
               </Button>
-              <span className="text-xs font-medium text-surface-600 min-w-[3rem] text-center">
+              <span className="text-xs font-medium text-surface-600 min-w-[3rem] text-center" aria-label={`Page ${activePage} of ${numPages}`}>
                 {activePage} / {numPages}
               </span>
               <Button 
+                aria-label="Next page"
                 variant="ghost" 
                 size="icon" 
                 onClick={() => onPageChange(Math.min(numPages, activePage + 1))}
@@ -88,20 +90,20 @@ function DocumentPanel({
               
               <div className="w-px h-4 bg-surface-300 mx-1"></div>
               
-              <Button variant="ghost" size="icon" onClick={() => setScale((current) => Math.max(0.5, current - 0.25))} className="h-7 w-7 rounded-md">
+              <Button aria-label="Zoom out" variant="ghost" size="icon" onClick={() => setScale((current) => Math.max(0.5, current - 0.25))} className="h-7 w-7 rounded-md">
                 <ZoomOut size={14} />
               </Button>
-              <span className="text-xs font-medium text-surface-600 w-10 text-center">{Math.round(scale * 100)}%</span>
-              <Button variant="ghost" size="icon" onClick={() => setScale((current) => Math.min(3.0, current + 0.25))} className="h-7 w-7 rounded-md">
+              <span className="text-xs font-medium text-surface-600 w-10 text-center" aria-label={`Zoom level ${Math.round(scale * 100)}%`}>{Math.round(scale * 100)}%</span>
+              <Button aria-label="Zoom in" variant="ghost" size="icon" onClick={() => setScale((current) => Math.min(3.0, current + 0.25))} className="h-7 w-7 rounded-md">
                 <ZoomIn size={14} />
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => setScale(1.0)} className="h-7 w-7 rounded-md ml-1 text-surface-400 hover:text-surface-900" title="Fit to width">
+              <Button aria-label="Fit to width" variant="ghost" size="icon" onClick={() => setScale(1.0)} className="h-7 w-7 rounded-md ml-1 text-surface-400 hover:text-surface-900" title="Fit to width">
                 <Maximize2 size={14} />
               </Button>
             </div>
           )}
           {onClose && (
-            <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 text-surface-400 hover:text-error-600 hover:bg-error-50 rounded-lg ml-2" title="Close Document">
+            <Button aria-label="Close document" variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 text-surface-400 hover:text-error-600 hover:bg-error-50 rounded-lg ml-2" title="Close Document">
               <X size={18} />
             </Button>
           )}

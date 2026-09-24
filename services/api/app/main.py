@@ -13,9 +13,13 @@ app = FastAPI(
     description="Foundation API for LegalLens AI.",
 )
 
+origins = settings.cors_origins.copy()
+if settings.frontend_url and settings.frontend_url not in origins:
+    origins.append(settings.frontend_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -52,7 +52,7 @@ def expand_tokens(tokens: set[str]) -> set[str]:
     return expanded
 
 class RetrievalService:
-    def retrieve_chunks(self, query: str, chunks: List[StoredChunk], top_k: int = 15) -> List[StoredChunk]:
+    def retrieve_chunks(self, query: str, chunks: List[StoredChunk], top_k: int = 8) -> List[StoredChunk]:
         query_tokens = tokenize(query)
         query_tokens = expand_tokens(query_tokens)
         

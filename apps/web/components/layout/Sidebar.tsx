@@ -29,18 +29,7 @@ export function Sidebar() {
   return (
     <aside className="hidden w-64 flex-col border-r border-surface-200 bg-white md:flex">
       <div className="flex flex-1 flex-col gap-1 p-4">
-        {/* Only implemented routes/features are active.
-            Others are shown to complete the SaaS look, but not clickable right now
-            since there are no other pages. */}
         <SidebarItem icon={FileText} label="Workspace" active />
-        
-        {/* Unimplemented sections just for SaaS visual structure per instructions */}
-        <div className="mt-4 px-3 text-xs font-semibold uppercase tracking-wider text-surface-400">
-          Coming Soon
-        </div>
-        <SidebarItem icon={LayoutDashboard} label="Dashboard" />
-        <SidebarItem icon={History} label="History" />
-        <SidebarItem icon={Settings} label="Settings" />
       </div>
       
       <div className="border-t border-surface-200 p-4">
