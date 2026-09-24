@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 def to_camel(value: str) -> str:
@@ -20,6 +20,7 @@ class HealthResponse(ApiModel):
     status: Literal["ok"]
     app_name: str
     environment: str
+    storage_mode: str = "ephemeral_local"
 
 
 DocumentStatus = Literal["uploaded", "processing", "processed", "failed"]
@@ -60,6 +61,12 @@ class ProcessDocumentResponse(ApiModel):
     clause_count: int
     chunk_count: int
     warnings: list[str]
+    message: str
+
+
+class DocumentDeleteResponse(ApiModel):
+    status: Literal["deleted"]
+    document_id: str
     message: str
 
 
@@ -112,8 +119,16 @@ class ChunksResponse(ApiModel):
 
 
 class QuestionRequest(ApiModel):
-    question: str = Field(min_length=1, examples=["Can my employer stop me from joining a competitor?"])
-    model_selection: str | None = Field(default="gemini_1")
+    question: str = Field(min_length=1, max_length=2000, examples=["Can my employer stop me from joining a competitor?"])
+    model_selection: str | None = Field(default="gemini_auto")
+
+    @field_validator("question")
+    @classmethod
+    def strip_question(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("question must not be empty")
+        return cleaned
 
 
 class Citation(ApiModel):
@@ -129,7 +144,7 @@ class QuestionResponse(ApiModel):
     answer: str
     confidence: Literal["low", "medium", "high"]
     missing_information: list[str] = Field(default_factory=list)
-    citations: list[Citation]
-    ambiguities: list[str]
-    lawyer_questions: list[str]
-    disclaimer: str
+    citations: list[Citation] = Field(default_factory=list)
+    ambiguities: list[str] = Field(default_factory=list)
+    lawyer_questions: list[str] = Field(default_factory=list)
+    disclaimer: str = "This is legal information, not legal advice. Consult a qualified lawyer."

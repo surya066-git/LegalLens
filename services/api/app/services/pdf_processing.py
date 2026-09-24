@@ -1,5 +1,8 @@
-import pymupdf
+import logging
 from pathlib import Path
+
+import pymupdf
+from fastapi import HTTPException
 
 from app.config import Settings
 from app.domain.document_models import StoredDocument, StoredPage
@@ -8,6 +11,8 @@ from app.services.clause_detection import detect_clauses
 from app.services.document_store import DocumentStore
 from app.services.errors import raise_api_error
 from app.services.text_normalization import normalize_search_text
+
+logger = logging.getLogger(__name__)
 
 
 def process_pdf_document(document_id: str, settings: Settings) -> StoredDocument:
@@ -35,11 +40,17 @@ def process_pdf_document(document_id: str, settings: Settings) -> StoredDocument
         document.warnings = sorted({warning for page in pages for warning in page.warnings})
         store.save_metadata(document)
         return document
-    except Exception as error:
+    except HTTPException:
         document.status = "failed"
-        document.error_message = str(error)
+        document.error_message = "PDF processing failed."
         store.save_metadata(document)
         raise
+    except Exception:
+        logger.exception("PDF processing failed for %s", document_id)
+        document.status = "failed"
+        document.error_message = "PDF processing failed."
+        store.save_metadata(document)
+        raise_api_error(500, "processing_failed", "PDF processing failed.")
 
 
 def extract_pages(pdf_path: Path, settings: Settings) -> list[StoredPage]:
@@ -47,6 +58,10 @@ def extract_pages(pdf_path: Path, settings: Settings) -> list[StoredPage]:
         pdf = pymupdf.open(pdf_path)
     except Exception:
         raise_api_error(400, "malformed_pdf", "Stored PDF could not be opened for processing.")
+
+    if pdf.page_count > settings.max_pdf_pages:
+        pdf.close()
+        raise_api_error(413, "too_many_pages", f"PDF exceeds the maximum of {settings.max_pdf_pages} pages.")
 
     pages: list[StoredPage] = []
     offset = 0
@@ -63,10 +78,11 @@ def extract_pages(pdf_path: Path, settings: Settings) -> list[StoredPage]:
                 elif len(raw_text.strip()) < settings.min_extractable_text_chars:
                     extraction_status = "potentially_scanned"
                     warnings.append("Little extractable text found on this page. OCR is not yet supported.")
-            except Exception as error:
+            except Exception:
+                logger.warning("Text extraction failed for page %s of %s", page_number, pdf_path.name)
                 raw_text = ""
                 extraction_status = "failed"
-                warnings.append(f"Text extraction failed for this page: {error}")
+                warnings.append("Text extraction failed for this page.")
 
             page_start = offset
             page_end = page_start + len(raw_text)

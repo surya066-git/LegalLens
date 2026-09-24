@@ -1,7 +1,10 @@
 import json
+import logging
 import re
 import uuid
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 from app.domain.document_models import StoredDocument, utc_now
 from app.services.errors import raise_api_error
@@ -40,6 +43,13 @@ class DocumentStore:
             raise_api_error(404, "document_not_found", "Document was not found.")
         return StoredDocument.model_validate_json(path.read_text(encoding="utf-8"))
 
+    def list_document_ids(self) -> list[str]:
+        ids: list[str] = []
+        for path in self.storage_root.iterdir():
+            if path.is_dir() and DOCUMENT_ID_PATTERN.fullmatch(path.name):
+                ids.append(path.name)
+        return sorted(ids)
+
     def delete_document(self, document_id: str) -> None:
         import shutil
         document_dir = self._document_dir(document_id)
@@ -48,6 +58,7 @@ class DocumentStore:
         try:
             shutil.rmtree(document_dir)
         except OSError:
+            logger.exception("Failed to delete %s", document_id)
             raise_api_error(500, "deletion_failed", "Failed to delete document files.")
 
     def metadata_path(self, document_id: str) -> Path:

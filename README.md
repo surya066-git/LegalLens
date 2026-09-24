@@ -1,8 +1,8 @@
 # LegalLens AI
 
-LegalLens AI is a full-stack MVP foundation for source-grounded legal assistance over employment contracts and offer letters. This version includes PDF upload, validation, page-aware text extraction with PyMuPDF, structural clause detection, and evidence-preserving chunking.
+LegalLens AI is a full-stack MVP foundation for source-grounded legal assistance over employment contracts and offer letters. This version includes PDF upload, validation, page-aware text extraction with PyMuPDF, structural clause detection, evidence-preserving chunking, BM25-based keyword retrieval, and LLM question answering with inline citation validation.
 
-Retrieval, vector search, database storage, authentication, OCR, and LLM answering are intentionally left for later phases.
+Database storage and authentication are left for later phases.
 
 ## Architecture
 
@@ -14,9 +14,10 @@ flowchart LR
   FastAPI --> Routes[Health, Document, Page, Clause, Question Routes]
   Routes --> Store[Local Controlled PDF Storage]
   Routes --> PDF[PyMuPDF Text Extraction]
+  Routes --> LLM[LLM API / Groq / Gemini]
 ```
 
-The browser calls local Next.js API routes such as `/api/health`. Those routes call FastAPI using the server-side `BACKEND_API_URL` environment variable. This keeps backend configuration and future API keys out of frontend browser code.
+The browser calls local Next.js API routes such as `/api/health`. Those routes call FastAPI using the server-side `BACKEND_API_URL` environment variable. This keeps backend configuration out of frontend browser code. Do not use `NEXT_PUBLIC_API_URL` as it would expose the backend directly to the browser.
 
 ## Folder Structure
 
@@ -83,9 +84,10 @@ Open `http://localhost:3000`.
 You must set these environment variables in your production hosting environments (e.g. EC2, VPS, Vercel, Render). Do not commit `.env` files with secrets.
 
 **Backend (`services/api`):**
-- `GEMINI_API_KEY`: Your Gemini API secret key.
+- `GEMINI_API_KEYS`: Your Gemini API secret key.
+- `GROQ_API_KEY`: Your Groq API key (optional).
 - `APP_ENV`: `production`
-- `CORS_ORIGINS`: e.g. `https://your-frontend-domain.com`
+- `CORS_ORIGINS`: e.g. `https://your-frontend-domain.com` (Do not use wildcard origins in production)
 
 **Frontend (`apps/web`):**
 - `BACKEND_API_URL`: e.g. `https://api.your-domain.com`
@@ -119,7 +121,7 @@ npm start
 
 ## Limitations & Risks (IMPORTANT)
 
-- **Local Filesystem Persistence:** Uploaded PDFs are stored in `services/api/storage/documents`. This relies on local disk. If you deploy to an ephemeral serverless container (e.g., Heroku without volumes, Render free tier, Vercel), uploaded documents will be lost upon restart. **Mitigation for Scale:** Transition to S3-compatible object storage.
+- **Ephemeral Cloud Storage:** Uploaded PDFs are stored in `services/api/storage/documents`. This relies on local disk. If you deploy to an ephemeral serverless container (e.g., Cloud Run, Heroku without volumes, Render free tier, Vercel), `/tmp` and local storage is ephemeral and uploaded documents will be lost upon restart. **Mitigation for Scale:** If persistent storage is required, transition to S3-compatible object storage (e.g. AWS S3, GCS) or at minimum mount a persistent volume if supported by the host.
 - **OCR Limitations:** Empty or low-text pages are marked as scanned-like. OCR is not yet supported.
 - **Keyword Retrieval Limitations:** Currently relies on exact and stemmed keyword retrieval. Complex semantic queries might require vector-based retrieval in the future.
 - **Rate Limiting:** No rate limiters are configured, meaning abuse of the PDF upload or LLM endpoints could exhaust external API quotas.
@@ -132,10 +134,4 @@ Backend tests:
 cd D:\LawAi\services\api
 .\.venv\Scripts\Activate.ps1
 python -m pytest
-```
-
-Expected result:
-
-```txt
-37 passed
 ```

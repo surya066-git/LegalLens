@@ -31,17 +31,31 @@ def _chunk_with_clauses(pages: list[StoredPage], clauses: list[StoredClause]) ->
         )
 
     for clause in clauses:
-        chunks.append(
-            StoredChunk(
-                chunk_id=f"chunk_{len(chunks) + 1}",
+        if len(clause.source_text) <= 2800:
+            chunks.append(
+                StoredChunk(
+                    chunk_id=f"chunk_{len(chunks) + 1}",
+                    clause_id=clause.clause_id,
+                    clause_number=clause.clause_number,
+                    page_start=clause.page_start,
+                    page_end=clause.page_end,
+                    source_text=clause.source_text,
+                    normalized_text=normalize_search_text(clause.source_text),
+                    start_offset=clause.start_offset,
+                    end_offset=clause.end_offset,
+                )
+            )
+            continue
+
+        chunks.extend(
+            _paragraph_chunks_from_text(
+                pages=pages,
+                text=clause.source_text,
+                base_offset=clause.start_offset,
+                chunk_prefix="chunk",
+                starting_index=len(chunks) + 1,
                 clause_id=clause.clause_id,
                 clause_number=clause.clause_number,
-                page_start=clause.page_start,
-                page_end=clause.page_end,
-                source_text=clause.source_text,
-                normalized_text=normalize_search_text(clause.source_text),
-                start_offset=clause.start_offset,
-                end_offset=clause.end_offset,
             )
         )
 
@@ -69,6 +83,8 @@ def _paragraph_chunks_from_text(
     base_offset: int,
     chunk_prefix: str,
     starting_index: int,
+    clause_id: str | None = None,
+    clause_number: str | None = None,
 ) -> list[StoredChunk]:
     chunks: list[StoredChunk] = []
     for match in PARAGRAPH_PATTERN.finditer(text):
@@ -83,8 +99,8 @@ def _paragraph_chunks_from_text(
         chunks.append(
             StoredChunk(
                 chunk_id=f"{chunk_prefix}_{starting_index + len(chunks)}",
-                clause_id=None,
-                clause_number=None,
+                clause_id=clause_id,
+                clause_number=clause_number,
                 page_start=page_start,
                 page_end=page_end,
                 source_text=source_text,

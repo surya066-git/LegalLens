@@ -9,10 +9,11 @@ import { cn } from "@/lib/utils";
 interface UploadZoneProps {
   onUpload: (file: File) => void;
   isUploading: boolean;
+  isProcessing?: boolean;
   error: string | null;
 }
 
-export function UploadZone({ onUpload, isUploading, error }: UploadZoneProps) {
+export function UploadZone({ onUpload, isUploading, isProcessing, error }: UploadZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 

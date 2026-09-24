@@ -16,9 +16,8 @@ def get_qa_pipeline() -> QAPipeline:
 
 @router.post("", response_model=QuestionResponse)
 def ask_question(
-    document_id: str, 
-    request: QuestionRequest, 
-    qa_pipeline: QAPipeline = Depends(get_qa_pipeline)
+    document_id: str,
+    request: QuestionRequest,
+    qa_pipeline: QAPipeline = Depends(get_qa_pipeline),
 ) -> QuestionResponse:
     return qa_pipeline.ask_question(document_id, request)
-

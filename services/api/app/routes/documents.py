@@ -7,6 +7,7 @@ from app.domain.schemas import (
     ChunksResponse,
     ClauseResponse,
     ClausesResponse,
+    DocumentDeleteResponse,
     DocumentStatusResponse,
     DocumentUploadResponse,
     PagesResponse,
@@ -75,16 +76,19 @@ def get_document(
     )
 
 
-@router.delete("/{documentId}")
+@router.delete("/{documentId}", response_model=DocumentDeleteResponse)
 def delete_document(
     documentId: str,
     settings: Settings = Depends(get_settings),
-):
-    # Note: Authentication and multi-user authorization are currently unsupported.
-    # When implemented, ownership validation MUST occur here before deletion.
+) -> DocumentDeleteResponse:
+    # Document IDs are unguessable UUIDs. There is no account model; possession of the ID is the access token.
     store = DocumentStore(settings.document_storage_dir)
     store.delete_document(documentId)
-    return {"status": "deleted", "message": "Document successfully deleted."}
+    return DocumentDeleteResponse(
+        status="deleted",
+        document_id=documentId,
+        message="Document successfully deleted.",
+    )
 
 
 @router.get("/{documentId}/clauses", response_model=ClausesResponse)

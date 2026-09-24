@@ -2,6 +2,7 @@ export type HealthResponse = {
   status: "ok";
   appName: string;
   environment: string;
+  storageMode?: string;
 };
 
 export type DocumentCreateResponse = {
@@ -32,6 +33,7 @@ export type Citation = {
 };
 
 export type QuestionResponse = {
+  status?: string;
   answerType: "DIRECTLY_ANSWERED" | "PARTIALLY_ANSWERED" | "NOT_FOUND";
   answer: string;
   confidence: "low" | "medium" | "high";
@@ -40,4 +42,12 @@ export type QuestionResponse = {
   ambiguities: string[];
   lawyerQuestions: string[];
   disclaimer: string;
+};
+
+export type ApiErrorBody = {
+  error?: string;
+  detail?: {
+    code?: string;
+    message?: string;
+  };
 };

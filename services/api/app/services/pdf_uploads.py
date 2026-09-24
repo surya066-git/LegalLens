@@ -1,3 +1,4 @@
+import logging
 import re
 from pathlib import PurePath
 
@@ -9,8 +10,10 @@ from app.domain.document_models import StoredDocument
 from app.services.document_store import DocumentStore
 from app.services.errors import raise_api_error
 
+logger = logging.getLogger(__name__)
 
 PDF_EXTENSION = ".pdf"
+PDF_MAGIC = b"%PDF-"
 SAFE_FILENAME_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._ -]{0,180}\.pdf$", re.IGNORECASE)
 
 
@@ -34,7 +37,7 @@ def validate_original_filename(filename: str | None) -> str:
 async def read_and_validate_upload(file: UploadFile, settings: Settings) -> tuple[str, bytes, int]:
     original_filename = validate_original_filename(file.filename)
 
-    if file.content_type != "application/pdf":
+    if file.content_type and file.content_type not in {"application/pdf", "application/octet-stream"}:
         raise_api_error(400, "invalid_content_type", "Upload must use content type application/pdf.")
 
     data = bytearray()
@@ -42,7 +45,6 @@ async def read_and_validate_upload(file: UploadFile, settings: Settings) -> tupl
         chunk = await file.read(1024 * 1024)
         if not chunk:
             break
-
         data.extend(chunk)
         if len(data) > settings.max_pdf_upload_bytes:
             raise_api_error(
@@ -54,11 +56,15 @@ async def read_and_validate_upload(file: UploadFile, settings: Settings) -> tupl
     if not data:
         raise_api_error(400, "empty_file", "Uploaded PDF is empty.")
 
-    page_count = validate_pdf_bytes(bytes(data))
-    return original_filename, bytes(data), page_count
+    raw = bytes(data)
+    if not raw.startswith(PDF_MAGIC):
+        raise_api_error(400, "malformed_pdf", "Uploaded file is not a readable PDF.")
+
+    page_count = validate_pdf_bytes(raw, settings)
+    return original_filename, raw, page_count
 
 
-def validate_pdf_bytes(data: bytes) -> int:
+def validate_pdf_bytes(data: bytes, settings: Settings) -> int:
     try:
         document = pymupdf.open(stream=data, filetype="pdf")
     except Exception:
@@ -70,6 +76,13 @@ def validate_pdf_bytes(data: bytes) -> int:
 
         if document.page_count <= 0:
             raise_api_error(400, "empty_pdf", "PDF does not contain any pages.")
+
+        if document.page_count > settings.max_pdf_pages:
+            raise_api_error(
+                413,
+                "too_many_pages",
+                f"PDF exceeds the maximum of {settings.max_pdf_pages} pages.",
+            )
 
         return document.page_count
     finally:
@@ -87,10 +100,12 @@ async def save_uploaded_pdf(file: UploadFile, settings: Settings) -> StoredDocum
     document = StoredDocument(
         document_id=document_id,
         original_filename=original_filename,
+        stored_filename="source.pdf",
         file_size_bytes=len(data),
         page_count=page_count,
         status="uploaded",
         warnings=[],
     )
     store.save_metadata(document)
+    logger.info("Stored document %s (%s bytes)", document_id, len(data))
     return document
