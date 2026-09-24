@@ -12,6 +12,7 @@ function SidebarItem({ icon: Icon, label, active }: SidebarItemProps) {
   return (
     <button
       type="button"
+      aria-current={active ? "page" : undefined}
       className={cn(
         "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
         active
